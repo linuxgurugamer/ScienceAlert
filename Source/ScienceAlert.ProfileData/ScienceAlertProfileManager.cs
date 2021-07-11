@@ -37,11 +37,13 @@ namespace ScienceAlert.ProfileData
             GameEvents.onVesselChange.Add(OnVesselChange);
             GameEvents.onVesselDestroy.Add(OnVesselDestroy);
             GameEvents.onVesselCreate.Add(OnVesselCreate);
+#if false
             GameEvents.onVesselWasModified.Add(OnVesselModified);
             GameEvents.onFlightReady.Add(OnFlightReady);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
             GameEvents.onSameVesselUndock.Add(OnSameVesselUndock);
             GameEvents.onUndock.Add(OnUndock);
+#endif
 
             Ready = false; // won't be ready until OnLoad
             Instance = this;
@@ -54,11 +56,13 @@ namespace ScienceAlert.ProfileData
             GameEvents.onVesselChange.Remove(OnVesselChange);
             GameEvents.onVesselDestroy.Remove(OnVesselDestroy);
             GameEvents.onVesselCreate.Remove(OnVesselCreate);
+#if false
             GameEvents.onVesselWasModified.Remove(OnVesselModified);
             GameEvents.onFlightReady.Remove(OnFlightReady);
             GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
             GameEvents.onSameVesselUndock.Remove(OnSameVesselUndock);
             GameEvents.onUndock.Remove(OnUndock);
+#endif
             SaveStoredProfiles();
         }
 
@@ -109,7 +113,7 @@ namespace ScienceAlert.ProfileData
             {
                 try
                 {
-                    kvp.Value.OnSave(profiles.AddNode(new ConfigNode("PROFILE")));
+                    kvp.Value.OnSave(profiles.AddNode(new ConfigNode("PROFILE")), true);
                 }
                 catch (Exception e)
                 {
@@ -119,9 +123,9 @@ namespace ScienceAlert.ProfileData
             System.IO.File.WriteAllText(ProfileStoragePath, profiles.ToString());
         }
 
-        #endregion
+#endregion
 
-        #region GameEvents
+#region GameEvents
 
         private void OnVesselChange(Vessel vessel)
         {
@@ -196,6 +200,7 @@ namespace ScienceAlert.ProfileData
             }
         }
 
+#if false
         private void OnVesselModified(Vessel vessel)
         {
             Log.Debug("ProfileManager.OnVesselModified: {0}", vessel.vesselName);
@@ -220,6 +225,7 @@ namespace ScienceAlert.ProfileData
         {
             Log.Debug("ProfileManager.OnUndock: origin {0}, sender {1}", report.origin.name, report.sender);
         }
+#endif
 
         public override void OnLoad(ConfigNode node)
         {
@@ -265,8 +271,8 @@ namespace ScienceAlert.ProfileData
                         vesselProfiles.Add(guid, p);
                     else
                     {
-                        Profile storedProfile = FindStoredProfile(p.name);
-                        if (HaveStoredProfile(storedProfile))
+                        var storedProfile = FindStoredProfile(p.name);
+                        if (storedProfile != null)
                         {
                             vesselProfiles.Add(guid, storedProfile.Clone());
                         }
@@ -290,40 +296,46 @@ namespace ScienceAlert.ProfileData
             if (!HighLogic.LoadedSceneIsGame || HighLogic.CurrentGame == null)
                 return;
             base.OnSave(node);
+            var seen = new HashSet<string>(Instance.storedProfiles.Count * 2);
             if (!node.HasNode(PERSISTENT_NODE_NAME)) node.AddNode(PERSISTENT_NODE_NAME);
             node = node.GetNode(PERSISTENT_NODE_NAME);
 
             foreach (var kvp in vesselProfiles)
             {
+                Guid uid = kvp.Key;
+                var profile = kvp.Value;
                 try
                 {
-                    if (FlightGlobals.Vessels.Any(v => v.id == kvp.Key))
+                    if (FlightGlobals.Vessels.Any(v => v.id == uid))
                     {
-                        ConfigNode newNode = new ConfigNode(kvp.Key.ToString());
+                        var newNode = new ConfigNode(uid.ToString());
                         node.AddNode(newNode);
-                        kvp.Value.OnSave(newNode);
+                        profile.OnSave(newNode, profile.modified || !seen.Contains(profile.
+                            name));
+                        seen.Add(profile.name);
                     }
                 }
                 catch (Exception e)
                 {
                     Log.Error("ProfileManager.OnSave: Exception while saving profile '{0}': {1}",
-                        $"{kvp.Key}:{kvp.Value.name}", e);
+                        $"{uid}:{profile.name}", e);
                 }
             }
+            seen.Clear();
         }
 
-        #endregion
+#endregion
 
-        #region other events
+#region other events
 
         public void OnSettingsSave()
         {
             SaveStoredProfiles();
         }
 
-        #endregion
+#endregion
 
-        #region Interaction methods
+#region Interaction methods
         public static ScienceAlertProfileManager Instance { private set; get; }
         public bool Ready { private set; get; }
 
@@ -430,9 +442,9 @@ namespace ScienceAlert.ProfileData
             return true;
         }
 
-        #endregion
+#endregion
 
-        #region internal methods
+#region internal methods
 
         private static Profile FindStoredProfile(string name)
         {
@@ -443,11 +455,6 @@ namespace ScienceAlert.ProfileData
         public static bool HaveStoredProfile(string name)
         {
             return FindStoredProfile(name) != null;
-        }
-
-        public static bool HaveStoredProfile(Profile p)
-        {
-            return p != null;
         }
 
         private string FindVesselName(Guid guid)
@@ -461,6 +468,6 @@ namespace ScienceAlert.ProfileData
         {
             return $"{guid}:{FindVesselName(guid)}";
         }
-        #endregion
+#endregion
     }
 }

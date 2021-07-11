@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ReeperCommon;
+using UnityEngine;
 
 namespace ScienceAlert.ProfileData
 {
@@ -111,14 +112,17 @@ namespace ScienceAlert.ProfileData
             }
         }
 
-        public void OnSave(ConfigNode node)
+        public void OnSave(ConfigNode node, bool writeContents)
         {
             ConfigNode.CreateConfigFromObject(this, 0, node);
-            foreach (KeyValuePair<string, ExperimentSettings> current in settings)
+            if (writeContents)
             {
-                ConfigNode newNode = new ConfigNode(current.Key);
-                node.AddNode(newNode);
-                current.Value.OnSave(newNode);
+                foreach (KeyValuePair<string, ExperimentSettings> current in settings)
+                {
+                    ConfigNode newNode = new ConfigNode(current.Key);
+                    node.AddNode(newNode);
+                    current.Value.OnSave(newNode);
+                }
             }
            //Log.Debug("ALERT:Profile: OnSave config: {0}", node.ToString());
         }
@@ -146,6 +150,35 @@ namespace ScienceAlert.ProfileData
                 }
                 settings[text].OnLoad(node2);
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            bool eql = false;
+            IDictionary<string, ExperimentSettings> otherSettings;
+            if (obj is Profile other && name == other.name && Mathf.Approximately(
+                scienceThreshold, other.scienceThreshold) && (otherSettings = other.settings).
+                Count == settings.Count)
+            {
+                eql = true;
+                foreach (var pair in settings)
+                {
+                    if (!otherSettings.TryGetValue(pair.Key, out ExperimentSettings os) ||
+                        !pair.Value.Equals(os))
+                    {
+                        eql = false;
+                        break;
+                    }
+                    // If all of ours exist in theirs, and same size, then they can have no
+                    // imposters
+                }
+            }
+            return eql;
+        }
+
+        public override int GetHashCode()
+        {
+            return name.GetHashCode();
         }
 
         public Profile Clone()

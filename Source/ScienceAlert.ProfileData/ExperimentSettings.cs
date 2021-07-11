@@ -138,6 +138,21 @@ namespace ScienceAlert.ProfileData
             node.AddValue("IsDefault", IsDefault);
         }
 
+        public override bool Equals(object obj)
+        {
+            return obj is ExperimentSettings es && Enabled == es.Enabled && SoundOnDiscovery ==
+                es.SoundOnDiscovery && AnimationOnDiscovery == es.AnimationOnDiscovery &&
+                StopWarpOnDiscovery == es.StopWarpOnDiscovery && Filter == es.Filter &&
+                IsDefault == es.IsDefault;
+        }
+
+        public override int GetHashCode()
+        {
+            return (Enabled ? 0x1 : 0x0) | (SoundOnDiscovery ? 0x2 : 0x0) |
+                (AnimationOnDiscovery ? 0x4 : 0x0) | (StopWarpOnDiscovery ? 0x8 : 0x0) |
+                (IsDefault ? 0x10 : 0x0) | ((int)Filter << 8);
+        }
+
         public override string ToString()
         {
             ConfigNode configNode = new ConfigNode();
