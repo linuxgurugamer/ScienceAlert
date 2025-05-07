@@ -1,5 +1,10 @@
 ChangeLog
 
+1.9.20.5
+
+	Thanks to github user @averageksp for this:
+		Add German Translation for ScienceAlert 
+
 1.9.20.4
 	Thanks to github user @ch3zych3z for this:
 		Added RU localization
